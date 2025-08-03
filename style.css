@@ -143,6 +143,7 @@
 .player {
     background-color: red;
     position: absolute;
+    display: none;
 }
 .land-cell {
     position: absolute;

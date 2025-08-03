@@ -96,9 +96,9 @@ loadLandmassData();
 
 function initRenderer() {
     renderer.innerHTML = '';
-    const player = document.createElement('div');
-    player.id = "player";
-    renderer.appendChild(player);
+    // const player = document.createElement('div');
+    // player.id = "player";
+    // renderer.appendChild(player);
     cellPool.clear();
     updateVisibleArea();
 }
