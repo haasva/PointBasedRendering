@@ -1,16 +1,16 @@
 const landmassImage = new Image();
 let landmassLoaded = false;
-// Initialize as empty array - we'll fill it later
+
 const landmassData = Array(1000).fill().map(() => Array(1000).fill(false));
 
 let sightRange = 20;
-let worldX = 250; // Actual world position (can be fractional)
+let worldX = 250;
 let worldY = 250;
-let renderOffsetX = 0; // Sub-cell render offset (-1 to 1)
+let renderOffsetX = 0;
 let renderOffsetY = 0;
 const renderer = document.getElementById('renderer');
 const cellPool = new Map();
-const cardboardMap = new Map();   // Tracks all active cardboards by their cell key
+const cardboardMap = new Map();
 
 const moveSpeed = 3; // Cells per second
 let lastFrameTime = 0;
@@ -44,6 +44,7 @@ function loadLandmassData() {
                     const isLandmass = imageData[pos] === 0 && 
                                       imageData[pos + 1] === 0 && 
                                       imageData[pos + 2] === 0;
+                                      
                                       if (isLandmass) {
                                         landmassData[y][x] = generateData();
                                       } else {
@@ -104,11 +105,9 @@ function initRenderer() {
 function removeCell(key) {
     const cellData = cellPool.get(key);
     if (cellData) {
-        // Remove all cardboards from the cardboardMap
         cellData.cardboards.forEach(cardboard => {
             cardboardMap.delete(cardboard);
         });
-        
         cellData.element.remove();
         cellPool.delete(key);
     }
@@ -120,13 +119,11 @@ function updateVisibleArea() {
     const centerX = Math.round(worldX);
     const centerY = Math.round(worldY);
     
-    // Calculate bounding box for iteration (optimization)
     const minX = Math.max(0, centerX - sightRange);
     const maxX = Math.min(999, centerX + sightRange);
     const minY = Math.max(0, centerY - sightRange);
     const maxY = Math.min(999, centerY + sightRange);
     
-    // Remove out-of-view cells (circular check)
     cellPool.forEach((cell, key) => {
         const [x, y] = key.split(',').map(Number);
         const distance = Math.sqrt(
@@ -134,12 +131,12 @@ function updateVisibleArea() {
             Math.pow(y - worldY, 2)
         );
         
-        if (distance > sightRange * 1.2) { // 20% buffer zone
+        if (distance > sightRange) {
             removeCell(key, cell);
         }
     });
     
-    // Add new cells (with circular check)
+
     const rendererWidth = renderer.clientWidth;
     const rendererHeight = renderer.clientHeight;
     const cellSize = Math.min(
@@ -215,17 +212,14 @@ function updateAllPositions() {
     );
     
     cellPool.forEach(cell => {
-        // Calculate distance from player (world space)
+
         const dx = cell.x - worldX;
         const dy = cell.y - worldY;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        // Calculate screen position
         const posX = (rendererWidth / 2) + (dx * cellSize);
         const posY = (rendererHeight / 2) + (dy * cellSize);
-        
-        // Apply position with distance-based alpha
-        const alpha = 1 - Math.min(1, distance / sightRange);
+
         cell.element.style.transform = `translate3d(${posX}px, ${posY}px, 0)`;
 
     });
