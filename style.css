@@ -71,7 +71,7 @@
     perspective: 700px;
     perspective-origin: center center;
     image-rendering: pixelated;
-    filter: url(#posterize) url(#pixelate);
+    filter: url(#posterize) url(#pixelate) ;
 }
 
 #engine-wrapper::before {
@@ -86,10 +86,10 @@
   background-position: center;
   z-index: 2;
   animation: luminosity 5s ease-in-out infinite;
-  opacity: 0.02;
+  opacity: 0.01;
   pointer-events: none;
   mix-blend-mode:color-burn;
-  filter: contrast(2) brightness(1.2) sepia(2);
+  filter: contrast(1) brightness(2) sepia(2);
 }
 
 #engine-wrapper::after {
