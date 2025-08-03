@@ -20,7 +20,7 @@ let SETTINGS = {
     pointerLock: false,
     yaw: 0,   // z rotation
     pitch: 90,  // angle
-    translateZ: -6
+    translateZ: -0.5
 }
 
 
@@ -413,7 +413,7 @@ function applyNeoTransforms() {
     rotateX(${SETTINGS.pitch}deg)  /* Pitch - applied first */
     rotateZ(${SETTINGS.yaw}deg) /* Yaw - applied second */
     scale3d(800, 800, 800) 
-    translate3d(0px, 0px, ${SETTINGS.translateZ}px) 
+    translate3d(0px, 0px, ${SETTINGS.translateZ}dvh) 
     `;
 }
 

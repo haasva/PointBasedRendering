@@ -14,6 +14,7 @@
         height: 100%;
         background-color: #222;
         place-content: center;
+        overflow: hidden;
     }
     article, aside, details, figcaption, figure, footer, header, hgroup, main, menu, nav, section {
         display: block;
@@ -71,7 +72,7 @@
     perspective: 700px;
     perspective-origin: center center;
     image-rendering: pixelated;
-    filter: url(#posterize) url(#pixelate) ;
+    filter: contrast(0.95) url(#posterize) url(#pixelate) ;
 }
 
 #engine-wrapper::before {
@@ -98,7 +99,7 @@
     background-size: cover;
     mix-blend-mode: soft-light;
     position: absolute;
-    opacity: 0.3;
+    opacity: 0.2;
     top: 0;
     left: 0;
     width: 100%;
