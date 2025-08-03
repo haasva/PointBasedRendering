@@ -1,0 +1,71 @@
+<html>
+  <head>
+    <!-- Meta Tags -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+    <!-- Favicon -->
+    <link rel="icon" href="/Art/tied-scroll.png">
+  
+    <!-- Title -->
+    <title>Point Based Rendering</title>
+  
+    <!-- Stylesheets -->
+    <link rel="stylesheet" type="text/css" href="style.css">
+  
+    <!-- Preconnect & Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+
+    <link href="https://fonts.googleapis.com/css2?family=Alegreya+SC:ital,wght@0,400;0,500;0,700;0,800;0,900;1,400;1,500;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa+Ink:wght@400;700&display=swap" rel="stylesheet">
+
+    
+  </head>
+  
+  
+<body name="bodydocument">
+
+<div id="position-info"></div>
+
+
+<div id="engine-wrapper">
+  <div id="horizon"></div>
+  <div id="renderer"></div>
+</div>
+
+
+
+  <script src="script.js"></script>
+
+
+<svg height="256" width="256" style="display: none;">
+  <filter id="posterize">
+    <feComponentTransfer>
+      <feFuncR type="discrete" 
+               tableValues="0 0.05 0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1" />
+      <feFuncG type="discrete" 
+               tableValues="0 0.05 0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1" />
+      <feFuncB type="discrete" 
+               tableValues="0 0.05 0.10 0.15 0.20 0.25 0.30 0.35 0.40 0.45 0.50 0.55 0.60 0.65 0.70 0.75 0.80 0.85 0.90 0.95 1" />
+    </feComponentTransfer>
+  </filter>
+</svg>
+
+
+
+<svg width="0" height="0" aria-hidden="true">
+  <filter id="pixelate">
+    <feFlood x="1" y="1" width="1" height="1"/>
+    <feBlend width="3" height="3"/>
+    <feTile/>
+    <feComposite in="SourceGraphic" operator="in"/>
+    <feMorphology operator="dilate" radius="1"/>
+  </filter>
+</svg>
+
+
+</body>
+</html>
