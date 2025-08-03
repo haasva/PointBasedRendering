@@ -17,6 +17,7 @@ let lastFrameTime = 0;
 
 let facingDirection = 0;
 let SETTINGS = {
+    pointerLock: false,
     yaw: 0,   // z rotation
     pitch: 90,  // angle
     translateZ: -6
@@ -332,7 +333,7 @@ document.addEventListener('mousemove', updateCameraRotation);
 
 
 function updateCameraRotation(event) {
-
+    if (SETTINGS.pointerLock === false) return;
     const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
     const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
   
@@ -422,8 +423,10 @@ function togglePointerLock() {
   || engineWrapper.mozRequestPointerLock 
   || engineWrapper.webkitRequestPointerLock;
   if (document.pointerLockElement === engineWrapper) {
+    SETTINGS.pointerLock = false;
     document.exitPointerLock();
   } else {
+    SETTINGS.pointerLock = true;
     requestPointerLock.call(engineWrapper);
   }
 }
