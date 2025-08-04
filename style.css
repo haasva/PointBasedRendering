@@ -72,7 +72,8 @@
     perspective: 700px;
     perspective-origin: center center;
     image-rendering: pixelated;
-    filter: contrast(0.95) url(#posterize) url(#pixelate) ;
+        transform-style: preserve-3d;
+    /* filter: contrast(0.95) url(#posterize) url(#pixelate) ; */
 }
 
 #engine-wrapper::before {
@@ -86,8 +87,7 @@
   background-size: 200px 200px;
   background-position: center;
   z-index: 2;
-  animation: luminosity 5s ease-in-out infinite;
-  opacity: 0.01;
+  opacity: 0.03;
   pointer-events: none;
   mix-blend-mode:color-burn;
   filter: contrast(1) brightness(2) sepia(2);
@@ -107,14 +107,25 @@
     z-index: 1;
 }
 
+#floor {
+    width: 500px;
+    height: 500px;
+    margin: 0 auto;
+    outline: 1px solid red;
+    image-rendering: pixelated;
+    border-radius: 50%;
+    z-index: 2;
+    position: absolute;
+    transform: translateZ(0);
+    transform-style: preserve-3d;
+}
+
 #renderer {
     margin: 0 auto;
     width: 500px;
     height: 500px;
     border: 1px solid gray;
-    background-color: #777;
-    background-image: url('steppe.jpg');
-    background-size: 50px 50px;
+    backface-visibility: hidden;
     border-radius: 50%;
     transform: rotateX(90deg) scale3d(10, 10, 10) translate3d(0px, 0px, -4px);
     transform-origin: 250px 250px;
@@ -154,7 +165,6 @@
     align-content: center;
     transform-style: preserve-3d;
     will-change: transform;
-
 }
 
 .land-cell .tree {

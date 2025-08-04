@@ -1,7 +1,10 @@
-const landmassImage = new Image();
-let landmassLoaded = false;
+const vegetationImage = new Image();
+let vegetationLoaded = false;
+const vegetationData = Array(1000).fill().map(() => Array(1000).fill(false));
 
-const landmassData = Array(1000).fill().map(() => Array(1000).fill(false));
+const textureImage = new Image();
+let textureLoaded = false;
+const textureData = Array(1000).fill().map(() => Array(1000).fill(false));
 
 let sightRange = 20;
 let worldX = 250;
@@ -12,26 +15,108 @@ const renderer = document.getElementById('renderer');
 const cellPool = new Map();
 const cardboardMap = new Map();
 
-const moveSpeed = 3; // Cells per second
+
+const canvas = document.getElementById('floor');
+const ctx = canvas.getContext('2d');
+let lastWorldX = worldX;
+let lastWorldY = worldY;
+
+// Double buffering
+const bufferCanvas = document.createElement('canvas');
+const bufferCtx = bufferCanvas.getContext('2d');
+
+const textureCache = new Map(); // Cache loaded images
+const chunkSize = 20; // Cells per chunk (8x8 grid)
+const dirtyChunks = new Set(); // Track changed areas
+
+async function loadTexture(name) {
+    if (textureCache.has(name)) return textureCache.get(name);
+    
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            textureCache.set(name, img);
+            resolve(img);
+        };
+        img.src = `/textures/${name}`;
+    });
+}
+
+// Preload common textures
+
+
+
+async function initFloorCanvas() {
+    canvas.width = renderer.clientWidth;
+    canvas.height = renderer.clientHeight;
+    canvas.style.transformStyle = 'preserve-3d';
+    canvas.style.position = 'absolute';
+    canvas.style.zIndex = 2;
+
+canvas.style.imageRendering = 'pixelated';
+canvas.style.msInterpolationMode = 'nearest-neighbor';
+
+// Configure canvas context
+ctx.imageSmoothingEnabled = false;
+ctx.mozImageSmoothingEnabled = false;
+ctx.webkitImageSmoothingEnabled = false;
+ctx.msImageSmoothingEnabled = false;
+
+bufferCanvas.style.imageRendering = 'pixelated';
+bufferCanvas.style.msInterpolationMode = 'nearest-neighbor';
+
+// Configure canvas context
+bufferCanvas.imageSmoothingEnabled = false;
+bufferCanvas.mozImageSmoothingEnabled = false;
+bufferCanvas.webkitImageSmoothingEnabled = false;
+bufferCanvas.msImageSmoothingEnabled = false;
+
+
+        // Larger viewport to accommodate sub-cell movement
+    bufferCanvas.width = renderer.clientWidth * 1; 
+    bufferCanvas.height = renderer.clientHeight * 1;
+
+       let scale = Math.min(
+          renderer.clientWidth / canvas.width,
+          renderer.clientHeight / canvas.height
+        );
+
+          scale = Math.floor(scale);
+        
+        canvas.width = Math.round(scale * canvas.width);
+        canvas.height = Math.round(scale * canvas.height);
+        bufferCanvas.width = Math.round(scale * canvas.width);
+        bufferCanvas.height = Math.round(scale * canvas.height);
+
+          const preloadTextures = ['montane.jog', 'steppe.jpg'];
+        await Promise.all(preloadTextures.map(loadTexture));
+      
+}
+
+
+
+
 let lastFrameTime = 0;
 
 let facingDirection = 0;
 let SETTINGS = {
     pointerLock: false,
+    run: false,
+    moveSpeed: 2.5,
     yaw: 0,   // z rotation
     pitch: 90,  // angle
     translateZ: -0.5
 }
 
 
-function loadLandmassData() {
+function loadTextureData() {
     function checkIfLoaded() {
-        if (landmassLoaded) {
+        if (textureLoaded) {
             const canvas = document.createElement('canvas');
-            canvas.width = landmassImage.width;
-            canvas.height = landmassImage.height;
+            canvas.width = textureImage.width;
+            canvas.height = textureImage.height;
             const context = canvas.getContext('2d');
-            context.drawImage(landmassImage, 0, 0);
+            context.drawImage(textureImage, 0, 0);
             
             // Get image data as a flat array
             const imageData = context.getImageData(0, 0, canvas.width, canvas.height).data;
@@ -42,14 +127,14 @@ function loadLandmassData() {
                     // Calculate position in flat array
                     const pos = (y * canvas.width + x) * 4;
                     // Check if pixel is black (RGB all 0)
-                    const isLandmass = imageData[pos] === 0 && 
+                    const isTexture = imageData[pos] === 0 && 
                                       imageData[pos + 1] === 0 && 
                                       imageData[pos + 2] === 0;
                                       
-                                      if (isLandmass) {
-                                        landmassData[y][x] = generateData();
+                                      if (isTexture) {
+                                        textureData[y][x] = "montane.jpg";
                                       } else {
-                                        landmassData[y][x] = null;
+                                        textureData[y][x] = "steppe.jpg";
                                       }
                     
                 }
@@ -57,11 +142,52 @@ function loadLandmassData() {
         }
     }
 
-    landmassImage.onload = function() {
-        landmassLoaded = true;
+    textureImage.onload = function() {
+        textureLoaded = true;
         checkIfLoaded();
     };
-    landmassImage.src = 'landmass.bmp';
+    textureImage.src = 'texture.bmp';
+}
+
+
+function loadVegetationData() {
+    function checkIfLoaded() {
+        if (vegetationLoaded) {
+            const canvas = document.createElement('canvas');
+            canvas.width = vegetationImage.width;
+            canvas.height = vegetationImage.height;
+            const context = canvas.getContext('2d');
+            context.drawImage(vegetationImage, 0, 0);
+            
+            // Get image data as a flat array
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height).data;
+            
+            // Process the image data
+            for (let y = 0; y < 1000; y++) {
+                for (let x = 0; x < 1000; x++) {
+                    // Calculate position in flat array
+                    const pos = (y * canvas.width + x) * 4;
+                    // Check if pixel is black (RGB all 0)
+                    const isVegetation = imageData[pos] === 0 && 
+                                      imageData[pos + 1] === 0 && 
+                                      imageData[pos + 2] === 0;
+                                      
+                                      if (isVegetation) {
+                                        vegetationData[y][x] = generateData();
+                                      } else {
+                                        vegetationData[y][x] = null;
+                                      }
+                    
+                }
+            }
+        }
+    }
+
+    vegetationImage.onload = function() {
+        vegetationLoaded = true;
+        checkIfLoaded();
+    };
+    vegetationImage.src = 'landmass.bmp';
 }
 
 function generateData() {
@@ -91,16 +217,19 @@ function generateData() {
 
 
 
-loadLandmassData();
-
+loadVegetationData();
+loadTextureData();
 
 function initRenderer() {
-    renderer.innerHTML = '';
+
     // const player = document.createElement('div');
     // player.id = "player";
     // renderer.appendChild(player);
     cellPool.clear();
+    togglePointerLock();
+    applyNeoTransforms();
     updateVisibleArea();
+    initFloorCanvas();
 }
 
 function removeCell(key) {
@@ -155,8 +284,8 @@ function updateVisibleArea() {
             if (distance > sightRange) continue;
             
             const key = `${x},${y}`;
-            if (!cellPool.has(key) && landmassData[y][x]) {
-                const data = landmassData[y][x];
+            if (!cellPool.has(key) && vegetationData[y][x]) {
+                const data = vegetationData[y][x];
                 const cellData = createCell(x, y, cellSize, data);
                 cellData.element.style.setProperty('--rotation-z', `${SETTINGS.yaw}deg`);
                 renderer.appendChild(cellData.element);
@@ -221,7 +350,15 @@ function updateAllPositions() {
         const posX = (rendererWidth / 2) + (dx * cellSize);
         const posY = (rendererHeight / 2) + (dy * cellSize);
 
-        cell.element.style.transform = `translate3d(${posX}px, ${posY}px, 0)`;
+        const scale = 0.8 + (0.2 * (1 - distance * 2 / sightRange));
+cell.element.style.transform = `
+    translate3d(${posX}px, ${posY}px, 0)
+    scale3d(${scale}, ${scale}, ${scale})
+`;
+
+
+
+        // cell.element.style.transform = `translate3d(${posX}px, ${posY}px, 0)`;
 
     });
 }
@@ -265,8 +402,8 @@ function gameLoop(timestamp) {
         const rightX = Math.sin(yawRad + Math.PI/2);
         const rightY = Math.cos(yawRad + Math.PI/2);
         
-        const dx = (forwardX * moveForward + rightX * moveRight) * moveSpeed * deltaTime;
-        const dy = (forwardY * moveForward + rightY * moveRight) * moveSpeed * deltaTime;
+        const dx = (forwardX * moveForward + rightX * moveRight) * SETTINGS.moveSpeed * deltaTime;
+        const dy = (forwardY * moveForward + rightY * moveRight) * SETTINGS.moveSpeed * deltaTime;
         
         const prevCellX = Math.round(worldX);
         const prevCellY = Math.round(worldY);
@@ -286,14 +423,15 @@ function gameLoop(timestamp) {
         
         headBobbing();
         updateAllPositions();
-        updateBackgroundPosition();
-
+        //updateBackgroundPosition();
+        updateFloor();
         updatePositionInfo(worldX, worldY);
          
     }
     
     if (needsGridUpdate) {
         updateVisibleArea();
+        
         needsGridUpdate = false;
     }
     
@@ -437,3 +575,86 @@ document.addEventListener('keydown', (event) => {
         togglePointerLock();
       }
 });
+
+
+function toggleRun() {
+    SETTINGS.run = !SETTINGS.run;
+  if (SETTINGS.run === true) {
+    SETTINGS.moveSpeed = 10;
+  } else {
+    SETTINGS.moveSpeed = 3;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+function updateFloor() {
+drawFloor();
+    
+
+}
+
+
+async function drawFloor() {
+    const cellSize = Math.min(
+        canvas.width / (sightRange * 2), 
+        canvas.height / (sightRange * 2)
+    );
+    const fractionalX = worldX % 0.5;
+    const fractionalY = worldY % 0.5;
+    
+    // Calculate render bounds with sub-cell precision
+    const startX = Math.floor(worldX - sightRange) - 1;
+    const endX = Math.ceil(worldX + sightRange) + 1;
+    const startY = Math.floor(worldY - sightRange) - 1;
+    const endY = Math.ceil(worldY + sightRange) + 1;
+
+    // Clear only the moving portion
+    bufferCtx.clearRect(
+        (lastWorldX - worldX) * cellSize,
+        (lastWorldY - worldY) * cellSize,
+        canvas.width,
+        canvas.height
+    );
+
+    // Draw visible cells with sub-cell offset
+    for (let y = startY; y <= endY; y++) {
+        for (let x = startX; x <= endX; x++) {
+            if (y < 0 || y >= textureData.length || x < 0 || x >= textureData[0].length) continue;
+            
+            const texture = textureData[y][x];
+            if (!texture) continue;
+
+            const screenX = (x - worldX + sightRange) * cellSize + fractionalX * cellSize;
+            const screenY = (y - worldY + sightRange) * cellSize + fractionalY * cellSize;
+
+            bufferCtx.drawImage(
+                await loadTexture(texture),
+                screenX,
+                screenY,
+                cellSize,
+                cellSize
+            );
+        }
+    }
+
+    // Copy to visible canvas with sub-pixel precision
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(
+        bufferCanvas,
+        -fractionalX * cellSize,
+        -fractionalY * cellSize,
+        canvas.width,
+        canvas.height
+    );
+
+    lastWorldX = worldX;
+    lastWorldY = worldY;
+}
