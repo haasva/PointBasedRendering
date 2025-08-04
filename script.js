@@ -38,7 +38,7 @@ async function loadTexture(name) {
             textureCache.set(name, img);
             resolve(img);
         };
-        img.src = `/textures/${name}`;
+        img.src = `./textures/${name}`; // fixed
     });
 }
 
