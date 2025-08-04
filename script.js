@@ -88,7 +88,7 @@ bufferCanvas.msImageSmoothingEnabled = false;
         bufferCanvas.width = Math.round(scale * canvas.width);
         bufferCanvas.height = Math.round(scale * canvas.height);
 
-          const preloadTextures = ['montane.jog', 'steppe.jpg'];
+          const preloadTextures = ['montane.jpg', 'steppe.jpg'];
         await Promise.all(preloadTextures.map(loadTexture));
       
 }
