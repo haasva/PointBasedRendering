@@ -1,5 +1,7 @@
 import { applyNeoTransforms, drawFloor, updateAllPositions, updateVisibleArea, updateAllCardboardRotations } from "./renderer.js";
 
+import { updateMinimap } from "./minimap.js"
+
 export let PLAYER_STATE = {
     coordinate: {
         x: 20,
@@ -11,10 +13,13 @@ export let worldX = 20
 export let worldY = 20;
 
 let lastFrameTime = 0;
+let lastMinimapUpdate = 0;
+const MINIMAP_UPDATE_INTERVAL = 200; // ms
 
 let facingDirection = 0;
 
 export let SETTINGS = {
+    sightRange: 20,
     pointerLock: false,
     run: false,
     moveSpeed: 1.5,
@@ -44,6 +49,12 @@ document.addEventListener('keyup', (e) => {
     const key = e.key.toLowerCase();
     if (['w', 'a', 's', 'd'].includes(key)) keys[key] = false;
     if (e.code === 'ShiftLeft') keys.shift = false;
+});
+
+document.addEventListener('keydown', (event) => {
+      if (event.code === 'KeyQ') {
+        SETTINGS.translateZ = -12;
+      }
 });
 
 document.addEventListener('keydown', (event) => {
@@ -110,12 +121,17 @@ export function gameLoop(timestamp) {
         headBobbing();
         updateAllPositions();
         drawFloor();
-        updatePositionInfo(worldX, worldY);
+        updatePositionInfo(worldX.toFixed(2), worldY.toFixed(2));
     }
 
     if (needsGridUpdate) {
         updateVisibleArea();
         needsGridUpdate = false;
+    }
+
+    if (timestamp - lastMinimapUpdate > MINIMAP_UPDATE_INTERVAL) {
+        updateMinimap();
+        lastMinimapUpdate = timestamp;
     }
 
     requestAnimationFrame(gameLoop);

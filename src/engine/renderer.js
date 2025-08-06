@@ -2,15 +2,12 @@ import { uniqueTextures, vegetationData, textureData } from "../init/world-data.
 import { SETTINGS, PLAYER_STATE, togglePointerLock, worldX, worldY } from "./movement.js";
 
 
-let sightRange = 20;
-
-
 
 const renderer = document.getElementById('renderer');
 const cellPool = new Map();
 const cardboardMap = new Map();
 
-const canvas = document.getElementById('floor');
+export const canvas = document.getElementById('floor');
 const ctx = canvas.getContext('2d');
 let lastWorldX = worldX;
 let lastWorldY = worldY;
@@ -77,7 +74,7 @@ async function loadTexture(name) {
             textureCache.set(name, img);
             resolve(img);
         };
-        img.src = `./textures/${name}`; // fixed
+        img.src = `./art/textures/${name}`; // fixed
     });
 }
 
@@ -88,10 +85,10 @@ export async function drawFloor() {
     const fractionalY = Math.floor(worldY % 0.5);
     
     // Calculate render bounds with sub-cell precision
-    const startX = Math.floor(worldX - sightRange) - 1;
-    const endX = Math.ceil(worldX + sightRange) + 1;
-    const startY = Math.floor(worldY - sightRange) - 1;
-    const endY = Math.ceil(worldY + sightRange) + 1;
+    const startX = Math.floor(worldX - SETTINGS.sightRange) - 1;
+    const endX = Math.ceil(worldX + SETTINGS.sightRange) + 1;
+    const startY = Math.floor(worldY - SETTINGS.sightRange) - 1;
+    const endY = Math.ceil(worldY + SETTINGS.sightRange) + 1;
 
     // Clear only the moving portion
     bufferCtx.clearRect(
@@ -109,8 +106,8 @@ export async function drawFloor() {
             const texture = textureData[y][x];
             if (!texture) continue;
 
-const screenX = (x - worldX + sightRange) * cellSize;
-const screenY = (y - worldY + sightRange) * cellSize;
+const screenX = (x - worldX + SETTINGS.sightRange) * cellSize;
+const screenY = (y - worldY + SETTINGS.sightRange) * cellSize;
 
             bufferCtx.drawImage(
                 await loadTexture(texture),
@@ -157,10 +154,10 @@ export function updateVisibleArea() {
     const centerX = Math.round(worldX);
     const centerY = Math.round(worldY);
     
-    const minX = Math.max(0, centerX - sightRange);
-    const maxX = Math.min(999, centerX + sightRange);
-    const minY = Math.max(0, centerY - sightRange);
-    const maxY = Math.min(999, centerY + sightRange);
+    const minX = Math.max(0, centerX - SETTINGS.sightRange);
+    const maxX = Math.min(999, centerX + SETTINGS.sightRange);
+    const minY = Math.max(0, centerY - SETTINGS.sightRange);
+    const maxY = Math.min(999, centerY + SETTINGS.sightRange);
     
     cellPool.forEach((cell, key) => {
         const [x, y] = key.split(',').map(Number);
@@ -169,7 +166,7 @@ export function updateVisibleArea() {
             Math.pow(y - worldY, 2)
         );
         
-        if (distance > sightRange) {
+        if (distance > SETTINGS.sightRange) {
             removeCell(key, cell);
         }
     });
@@ -178,8 +175,8 @@ export function updateVisibleArea() {
     const rendererWidth = renderer.clientWidth;
     const rendererHeight = renderer.clientHeight;
     const cellSize = Math.min(
-        rendererWidth / (sightRange * 2), 
-        rendererHeight / (sightRange * 2)
+        rendererWidth / (SETTINGS.sightRange * 2), 
+        rendererHeight / (SETTINGS.sightRange * 2)
     );
     
     for (let y = minY; y <= maxY; y++) {
@@ -189,7 +186,7 @@ export function updateVisibleArea() {
                 Math.pow(y - worldY, 2)
             );
             
-            if (distance > sightRange) continue;
+            if (distance > SETTINGS.sightRange) continue;
             
             const key = `${x},${y}`;
             if (!cellPool.has(key) && vegetationData[y][x]) {
@@ -217,7 +214,7 @@ function createCell(x, y, cellSize, data) {
     cardboard.classList.add('cardboard');
     cardboard.classList.add(`${data.vegetation.size}`);
     cardboard.style.animation = data.vegetation.animation;
-    cardboard.style.backgroundImage = `url("../../vegetation/arid-montane/${data.vegetation.size}/${data.vegetation.variation}.png")`;
+    cardboard.style.backgroundImage = `url("../../art/vegetation/arid-montane/${data.vegetation.size}/${data.vegetation.variation}.png")`;
     element.appendChild(cardboard);
     
     const cellData = {
@@ -239,8 +236,8 @@ export function updateAllPositions() {
     const rendererWidth = renderer.clientWidth;
     const rendererHeight = renderer.clientHeight;
     const cellSize = Math.min(
-        rendererWidth / (sightRange * 2), 
-        rendererHeight / (sightRange * 2)
+        rendererWidth / (SETTINGS.sightRange * 2), 
+        rendererHeight / (SETTINGS.sightRange * 2)
     );
     
     cellPool.forEach(cell => {
@@ -252,7 +249,7 @@ export function updateAllPositions() {
         const posX = (rendererWidth / 2) + (dx * cellSize);
         const posY = (rendererHeight / 2) + (dy * cellSize);
 
-        const scale = 0.8 + (0.2 * (1 - distance * 2 / sightRange));
+        const scale = 0.8 + (0.2 * (1 - distance * 2 / SETTINGS.sightRange));
         cell.element.style.transform = `
             translate3d(${posX}px, ${posY}px, 0)
         `;
