@@ -35,13 +35,13 @@ const sprintSpeed = 10;
 let currentSpeed = keys.shift ? sprintSpeed : baseSpeed;
 
 document.addEventListener('keydown', (e) => {
-    const key = e.key.toLowerCase(); // Normalize to lowercase
+    const key = e.key.toLowerCase();
     if (['w', 'a', 's', 'd'].includes(key)) keys[key] = true;
     if (e.code === 'ShiftLeft') keys.shift = true;
 });
 
 document.addEventListener('keyup', (e) => {
-    const key = e.key.toLowerCase(); // Normalize again
+    const key = e.key.toLowerCase();
     if (['w', 'a', 's', 'd'].includes(key)) keys[key] = false;
     if (e.code === 'ShiftLeft') keys.shift = false;
 });

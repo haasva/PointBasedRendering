@@ -217,7 +217,7 @@ function createCell(x, y, cellSize, data) {
     cardboard.classList.add('cardboard');
     cardboard.classList.add(`${data.vegetation.size}`);
     cardboard.style.animation = data.vegetation.animation;
-    cardboard.style.backgroundImage = `url("/vegetation/arid-montane/${data.vegetation.size}/${data.vegetation.variation}.png")`;
+    cardboard.style.backgroundImage = `url("../../vegetation/arid-montane/${data.vegetation.size}/${data.vegetation.variation}.png")`;
     element.appendChild(cardboard);
     
     const cellData = {
