@@ -73,7 +73,7 @@
     perspective-origin: center center;
     image-rendering: pixelated;
         transform-style: preserve-3d;
-    /* filter: contrast(0.95) url(#posterize) url(#pixelate) ; */
+    filter: contrast(1.2);
 }
 
 #engine-wrapper::before {
@@ -87,7 +87,7 @@
   background-size: 200px 200px;
   background-position: center;
   z-index: 2;
-  opacity: 0.03;
+  opacity: 0.1;
   pointer-events: none;
   mix-blend-mode:color-burn;
   filter: contrast(1) brightness(2) sepia(2);
@@ -108,23 +108,24 @@
 }
 
 #floor {
-    width: 500px;
-    height: 500px;
+    width: 10000px;
+    height: 10000px;
     margin: 0 auto;
-    outline: 1px solid red;
     image-rendering: pixelated;
     border-radius: 50%;
     z-index: 2;
     position: absolute;
-    transform: translateZ(0);
+    transform: translateZ(0) scale3d(0.05, 0.05, 1);
+    transform-origin: 000px 000px;
     transform-style: preserve-3d;
+    filter: url(#posterize) ;
 }
+
 
 #renderer {
     margin: 0 auto;
     width: 500px;
     height: 500px;
-    border: 1px solid gray;
     backface-visibility: hidden;
     border-radius: 50%;
     transform: rotateX(90deg) scale3d(10, 10, 10) translate3d(0px, 0px, -4px);
