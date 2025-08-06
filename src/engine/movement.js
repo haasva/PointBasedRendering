@@ -130,12 +130,10 @@ export function gameLoop(timestamp) {
     if (needsGridUpdate) {
         updateVisibleArea();
         needsGridUpdate = false;
+        updateMinimap();
     }
 
-    if (timestamp - lastMinimapUpdate > MINIMAP_UPDATE_INTERVAL) {
-        updateMinimap();
-        lastMinimapUpdate = timestamp;
-    }
+
 
     requestAnimationFrame(gameLoop);
 }
