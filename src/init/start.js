@@ -8,4 +8,7 @@ function startGame() {
     requestAnimationFrame(gameLoop);
 }
 
-startGame();
+document.addEventListener("DOMContentLoaded", startGame);
+
+
+

@@ -1,6 +1,6 @@
 import { applyNeoTransforms, drawFloor, updateAllPositions, updateVisibleArea, updateAllCardboardRotations } from "./renderer.js";
 
-import { updateMinimap } from "./minimap.js"
+import { updateMinimap } from "../ui/minimap.js"
 
 export let PLAYER_STATE = {
     coordinate: {
@@ -9,8 +9,11 @@ export let PLAYER_STATE = {
     }
 }
 
-export let worldX = 20
+export let worldX = 20;
 export let worldY = 20;
+
+let _worldX = 20;
+let _worldY = 20;
 
 let lastFrameTime = 0;
 let lastMinimapUpdate = 0;
@@ -25,7 +28,9 @@ export let SETTINGS = {
     moveSpeed: 1.5,
     yaw: 0,   // z rotation
     pitch: 90,  // angle
-    translateZ: -0.5
+    translateZ: -0.5,
+    translateX: 0,
+    translateY: 0
 }
 
 
@@ -36,7 +41,7 @@ let needsGridUpdate = false;
 
 
 const baseSpeed = 2.5;
-const sprintSpeed = 10;
+const sprintSpeed = 40;
 let currentSpeed = keys.shift ? sprintSpeed : baseSpeed;
 
 document.addEventListener('keydown', (e) => {
@@ -79,8 +84,6 @@ export function gameLoop(timestamp) {
     if (keys.s) moveForward += 1;
     if (keys.a) moveRight -= 1;
     if (keys.d) moveRight += 1;
-
-
 
 
     const inputMagnitude = Math.hypot(moveForward, moveRight);
@@ -137,12 +140,46 @@ export function gameLoop(timestamp) {
     requestAnimationFrame(gameLoop);
 }
 
+export function getWorldPosition() {
+    return { x: _worldX, y: _worldY };
+}
+
+export function setWorldPosition(x, y) {
+    _worldX = Math.max(0, Math.min(1000, x));
+    _worldY = Math.max(0, Math.min(1000, y));
+
+    worldX = _worldX;
+    worldY = _worldY;
+
+    updateAllPositions();
+    drawFloor();
+    updateMinimap();
+    updateVisibleArea();
+}
 
 
-function updatePositionInfo(x, y) {
+const times = [];
+let fps;
+
+function refreshLoop() {
+  window.requestAnimationFrame(() => {
+    const now = performance.now();
+    while (times.length > 0 && times[0] <= now - 1000) {
+      times.shift();
+    }
+    times.push(now);
+    fps = times.length;
+    document.getElementById('fps').textContent = fps;
+    refreshLoop();
+  });
+}
+
+refreshLoop();
+
+export function updatePositionInfo(x, y) {
     const tip = document.querySelector('#position-info');
-    tip.innerHTML = `<div>PosX: ${x}</div>
-                     <div>PosY: ${y}</div>`;
+    tip.querySelector('#pos-x').textContent = `X: ${x}`;
+    tip.querySelector('#pos-y').textContent = `Y: ${y}`;
 }
 
 
@@ -192,13 +229,15 @@ function headBobbing() {
   const angleAmount = 0.05;
   const time = performance.now() * bobbingSpeed * 0.01;
   const ran = Math.floor(Math.random() * 2) + 0;
-  if (ran === 0) {
-    SETTINGS.yaw = SETTINGS.yaw + Math.sin(time * 2) * angleAmount;
-  } else {
-    SETTINGS.yaw = SETTINGS.yaw - Math.sin(time * 2) * angleAmount;
-  }
-  SETTINGS.pitch = SETTINGS.pitch + Math.sin(time * 2) * angleAmount / 2;
-  SETTINGS.translateZ = SETTINGS.translateZ - Math.cos(time * 1.75) * angleAmount / 15;
+  // if (ran === 0) {
+  //   SETTINGS.yaw = SETTINGS.yaw + Math.sin(time * 2) * angleAmount;
+  // } else {
+  //   SETTINGS.yaw = SETTINGS.yaw - Math.sin(time * 2) * angleAmount;
+  // }
+  SETTINGS.pitch = SETTINGS.pitch - Math.sin(time * 2) * angleAmount / 2;
+  SETTINGS.translateZ = SETTINGS.translateZ - Math.cos(time * 2) * angleAmount / 15;
+  SETTINGS.translateX = SETTINGS.translateX + Math.cos(time) * angleAmount * 1;
+  SETTINGS.translateY = SETTINGS.translateY - Math.cos(time) * angleAmount * 1;
 
     updateHorizon();
 //   if (PLAYER_STATE.horse === true) {
@@ -224,9 +263,11 @@ export function togglePointerLock() {
   }
 }
 
+  const horizon = document.getElementById("horizon");
+  const compass = document.getElementById("compass-container");
+
 
 function updateHorizon() {
-  const horizon = document.getElementById("horizon");
   const angleZ = SETTINGS.yaw;
   const angleX = SETTINGS.pitch;
   const normalizedAngleZ = ((angleZ % 360) + 360) % 360;
@@ -235,6 +276,9 @@ function updateHorizon() {
   const backgroundXHorizon = (normalizedAngleZ * (2048 / 180));
   horizon.style.backgroundPositionX = `${backgroundXHorizon}px`;
   horizon.style.backgroundPositionY = `${(backgroundY - 410) + (SETTINGS.translateZ * 75)}px`;
-}
 
+  const normalizedAngle = ((angleZ % 360) + 360) % 360;
+  const backgroundX = -(normalizedAngle * (800 / 360));
+  compass.style.backgroundPosition = `${backgroundX}px 0`;
+}
 

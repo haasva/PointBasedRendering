@@ -1,9 +1,10 @@
 const vegetationImage = new Image();
 let vegetationLoaded = false;
-export const vegetationData = Array(1000).fill().map(() => Array(1000).fill(false));
+const DATA_SIZE = 1000;
+export const vegetationData = Array(DATA_SIZE).fill().map(() => Array(DATA_SIZE).fill(false));
 
 const textureImage = new Image();
-export let textureData = Array(1000).fill().map(() => Array(1000).fill(false));
+export let textureData = Array(DATA_SIZE).fill().map(() => Array(DATA_SIZE).fill(false));
 
 export const uniqueTextures = new Set();
 
@@ -74,8 +75,8 @@ function loadVegetationData() {
             const imageData = context.getImageData(0, 0, canvas.width, canvas.height).data;
             
             // Process the image data
-            for (let y = 0; y < 1000; y++) {
-                for (let x = 0; x < 1000; x++) {
+            for (let y = 0; y < DATA_SIZE; y++) {
+                for (let x = 0; x < DATA_SIZE; x++) {
                     // Calculate position in flat array
                     const pos = (y * canvas.width + x) * 4;
                     // Check if pixel is black (RGB all 0)

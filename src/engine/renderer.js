@@ -8,7 +8,7 @@ const cellPool = new Map();
 const cardboardMap = new Map();
 
 export const canvas = document.getElementById('floor');
-const ctx = canvas.getContext('2d');
+export const ctx = canvas.getContext('2d');
 let lastWorldX = worldX;
 let lastWorldY = worldY;
 
@@ -213,8 +213,8 @@ function createCell(x, y, cellSize, data) {
     cardboard.className = 'tree';
     cardboard.classList.add('cardboard');
     cardboard.classList.add(`${data.vegetation.size}`);
-    cardboard.style.animation = data.vegetation.animation;
-    cardboard.style.backgroundImage = `url("../../art/vegetation/arid-montane/${data.vegetation.size}/${data.vegetation.variation}.png")`;
+    //cardboard.style.animation = data.vegetation.animation;
+    cardboard.style.backgroundImage = `url("../art/vegetation/arid-montane/${data.vegetation.size}/${data.vegetation.variation}.png")`;
     element.appendChild(cardboard);
     
     const cellData = {
@@ -269,7 +269,7 @@ export function applyNeoTransforms() {
     rotateX(${SETTINGS.pitch}deg)  /* Pitch - applied first */
     rotateZ(${SETTINGS.yaw}deg) /* Yaw - applied second */
     scale3d(800, 800, 800) 
-    translate3d(0px, 0px, ${SETTINGS.translateZ}dvh) 
+    translate3d(${SETTINGS.translateX}px, ${SETTINGS.translateY}px, ${SETTINGS.translateZ}dvh) 
     `;
 }
 

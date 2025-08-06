@@ -1,5 +1,5 @@
-import { canvas } from "./renderer.js";
-import { PLAYER_STATE, SETTINGS } from "./movement.js";
+import { canvas, ctx } from "../engine/renderer.js";
+import { PLAYER_STATE, SETTINGS } from "../engine/movement.js";
 
 const minimap = document.getElementById('minimap');
 const minimapCtx = minimap.getContext('2d');
@@ -28,13 +28,13 @@ export function updateMinimap() {
     // minimapPlayer.style.left = `${playerX}px`;
     // minimapPlayer.style.top = `${playerY}px`;
     
-    // // 3. Draw viewport rectangle (optional)
-    // minimapCtx.strokeStyle = 'red';
-    // minimapCtx.lineWidth = 1;
-    // minimapCtx.strokeRect(
-    //     (worldX - SETTINGS.sightRange) / 500 * minimap.width,
-    //     (worldY - SETTINGS.sightRange) / 500 * minimap.height,
-    //     (SETTINGS.sightRange * 2) / 500 * minimap.width,
-    //     (SETTINGS.sightRange * 2) / 500 * minimap.height
-    // );
+    // 3. Draw viewport rectangle (optional)
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(
+        (worldX - SETTINGS.sightRange) * canvas.width,
+        (worldY - SETTINGS.sightRange) * canvas.height,
+        (SETTINGS.sightRange * 2) * canvas.width,
+        (SETTINGS.sightRange * 2) * canvas.height
+    );
 }

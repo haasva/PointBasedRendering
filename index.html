@@ -28,12 +28,35 @@
   
 <body name="bodydocument">
 
-<div id="position-info" class="interface-modules"></div>
 
-<div id="minimap-container" class="interface-modules">
-    <canvas id="minimap"></canvas>
-    <div id="minimap-player"></div> <!-- Player indicator -->
+
+<div id="hud">
+
+  <div id="position-info" class="interface-modules">
+    <div id="pos-x"></div>
+    <div id="pos-y"></div>
+    <div id="fps"></div>
+  </div>
+
+  <div id="compass-container"></div>
+
+  <div id="minimap-container" class="interface-modules">
+      <canvas id="minimap"></canvas>
+      <div id="minimap-player"></div> <!-- Player indicator -->
+  </div>
+
+  <div id="crosshair"></div>
+
 </div>
+
+
+<div id="menu">
+  <div id="world-map-container">
+    <div id="world-map"></div>
+  </div>
+</div>
+
+
 
 
 <div id="engine-wrapper">
@@ -47,6 +70,7 @@
 
 
   <script src="src/init/start.js" type="module"></script>
+  <script type="module" src="src/ui/world-map.js" defer></script>
 
 
 <svg height="0" width="0" aria-hidden="true">
