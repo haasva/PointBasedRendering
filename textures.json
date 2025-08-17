@@ -14,5 +14,13 @@
     {
         "name": "farm",
         "color": [255, 200, 0]
+    },
+    {
+        "name": "alpine-tundra",
+        "color": [118, 173, 124]
+    },
+    {
+        "name": "desertic",
+        "color": [255, 157, 0]
     }
 ]

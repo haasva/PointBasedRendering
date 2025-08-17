@@ -2,11 +2,14 @@ import { applyNeoTransforms, drawFloor, updateAllPositions, updateVisibleArea, u
 
 import { updateMinimap } from "../ui/minimap.js"
 
+import { worldData } from "../init/world-data.js"
+
 export let PLAYER_STATE = {
     coordinate: {
         x: 20,
         y: 20
-    }
+    },
+    terrain: ''
 }
 
 export let worldX = 20;
@@ -22,15 +25,19 @@ const MINIMAP_UPDATE_INTERVAL = 200; // ms
 let facingDirection = 0;
 
 export let SETTINGS = {
+    firstPerson: true,
     sightRange: 20,
     pointerLock: false,
     run: false,
     moveSpeed: 1.5,
     yaw: 0,   // z rotation
     pitch: 90,  // angle
-    translateZ: -0.5,
+    translateZ: -0.4,
     translateX: 0,
-    translateY: 0
+    translateY: 0,
+    zoom: 1200,
+    maxTerrainHeight: 22,
+    fov: 90
 }
 
 
@@ -58,7 +65,15 @@ document.addEventListener('keyup', (e) => {
 
 document.addEventListener('keydown', (event) => {
       if (event.code === 'KeyQ') {
-        SETTINGS.translateZ = -12;
+        SETTINGS.firstPerson = !SETTINGS.firstPerson;
+
+        if (SETTINGS.firstPerson === false) {
+              SETTINGS.translateZ = -8;
+
+        } else {
+              SETTINGS.translateZ = -0.4;
+              SETTINGS.translateY = -0;
+        }
       }
 });
 
@@ -93,8 +108,27 @@ export function gameLoop(timestamp) {
     }
 
     if (moveForward !== 0 || moveRight !== 0) {
-            currentSpeed = keys.shift ? sprintSpeed : baseSpeed;
+          
+        currentSpeed = keys.shift ? sprintSpeed : baseSpeed;
 
+        if (SETTINGS.firstPerson === true) {
+          if (worldData.map[PLAYER_STATE.coordinate.y][PLAYER_STATE.coordinate.x].terrain === 'road') {
+            currentSpeed = baseSpeed * 2;
+            SETTINGS.translateZ = -0.4;
+          } else if (worldData.map[PLAYER_STATE.coordinate.y][PLAYER_STATE.coordinate.x].terrain === 'water') {
+            currentSpeed = baseSpeed / 5;
+            SETTINGS.translateZ = -0.1;
+          } else {
+            SETTINGS.translateZ = -0.4;
+            currentSpeed = baseSpeed;
+          }
+        } else {
+          currentSpeed = sprintSpeed / 2;
+        }
+
+
+
+        
         const yawRad = SETTINGS.yaw * (Math.PI / 180);
         
         const forwardX = Math.sin(yawRad);
@@ -108,8 +142,10 @@ export function gameLoop(timestamp) {
         const prevCellX = Math.round(worldX);
         const prevCellY = Math.round(worldY);
 
-        worldX = Math.max(0, Math.min(1000, worldX + dx));
-        worldY = Math.max(0, Math.min(1000, worldY + dy));
+        worldX = Math.max(0, Math.min(2000, worldX + dx));
+        worldY = Math.max(0, Math.min(2000, worldY + dy));
+
+        updatePlayerStateTerrain();
 
         const newCellX = Math.round(worldX);
         const newCellY = Math.round(worldY);
@@ -118,13 +154,14 @@ export function gameLoop(timestamp) {
             needsGridUpdate = true;
         }
 
-        PLAYER_STATE.coordinate.x = worldX;
-        PLAYER_STATE.coordinate.y = worldY;
+
 
         headBobbing();
         updateAllPositions();
         drawFloor();
-        updatePositionInfo(worldX.toFixed(2), worldY.toFixed(2));
+
+// silhouette.update();
+        
     }
 
     if (needsGridUpdate) {
@@ -138,21 +175,77 @@ export function gameLoop(timestamp) {
     requestAnimationFrame(gameLoop);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function updatePlayerStateTerrain() {
+        const cellX = Math.min(
+            worldData.map[0].length - 1, // Max X bound
+            Math.max(0, Math.floor(worldX)) // Min X bound
+        );
+        const cellY = Math.min(
+            worldData.map.length - 1, // Max Y bound
+            Math.max(0, Math.floor(worldY)) // Min Y bound
+        );
+
+        PLAYER_STATE.coordinate.x = cellX;
+        PLAYER_STATE.coordinate.y = cellY;
+        PLAYER_STATE.terrain = worldData.map[PLAYER_STATE.coordinate.y][PLAYER_STATE.coordinate.x];
+
+        updatePositionInfo(worldX.toFixed(2), worldY.toFixed(2), worldData.map[PLAYER_STATE.coordinate.y][PLAYER_STATE.coordinate.x]);
+}
+
 export function getWorldPosition() {
     return { x: _worldX, y: _worldY };
 }
 
 export function setWorldPosition(x, y) {
-    _worldX = Math.max(0, Math.min(1000, x));
-    _worldY = Math.max(0, Math.min(1000, y));
+    _worldX = Math.max(0, Math.min(2000, x));
+    _worldY = Math.max(0, Math.min(2000, y));
 
     worldX = _worldX;
     worldY = _worldY;
-
+    
+    SETTINGS.yaw = 0;
+    
+    updatePlayerStateTerrain();
     updateAllPositions();
     drawFloor();
-    updateMinimap();
+
     updateVisibleArea();
+
+
+    updateHorizon();
+    updateAllCardboardRotations();
+    applyNeoTransforms();
+
+        updateMinimap();
 }
 
 
@@ -167,17 +260,18 @@ function refreshLoop() {
     }
     times.push(now);
     fps = times.length;
-    document.getElementById('fps').textContent = fps;
+    document.getElementById('fps').textContent = 'FPS: ' + fps;
     refreshLoop();
   });
 }
 
 refreshLoop();
 
-export function updatePositionInfo(x, y) {
+export function updatePositionInfo(x, y, cellData) {
     const tip = document.querySelector('#position-info');
     tip.querySelector('#pos-x').textContent = `X: ${x}`;
     tip.querySelector('#pos-y').textContent = `Y: ${y}`;
+    tip.querySelector('#cell-data').textContent = `${cellData.terrain}`;
 }
 
 
@@ -220,9 +314,13 @@ function updateCameraRotation(event) {
     applyNeoTransforms();
     updateHorizon();
     updateAllCardboardRotations();
+
+
+
 }
 
 function headBobbing() {
+  if (SETTINGS.firstPerson != true) return;
   const bobbingSpeed = 0.75;
   const angleAmount = 0.05;
   const time = performance.now() * bobbingSpeed * 0.01;
@@ -232,10 +330,10 @@ function headBobbing() {
   // } else {
   //   SETTINGS.yaw = SETTINGS.yaw - Math.sin(time * 2) * angleAmount;
   // }
-  SETTINGS.pitch = SETTINGS.pitch - Math.sin(time * 2) * angleAmount / 2;
-  SETTINGS.translateZ = SETTINGS.translateZ - Math.cos(time * 2) * angleAmount / 15;
-  SETTINGS.translateX = SETTINGS.translateX + Math.cos(time) * angleAmount * 1;
-  SETTINGS.translateY = SETTINGS.translateY - Math.cos(time) * angleAmount * 1;
+  // SETTINGS.pitch = SETTINGS.pitch - Math.sin(time * 2) * angleAmount / 2;
+  SETTINGS.translateZ = SETTINGS.translateZ - Math.cos(time * 2) * angleAmount / 4;
+  // SETTINGS.translateX = SETTINGS.translateX + Math.cos(time) * angleAmount * 1;
+  // SETTINGS.translateY = SETTINGS.translateY - Math.cos(time) * angleAmount * 1;
 
     updateHorizon();
 //   if (PLAYER_STATE.horse === true) {
@@ -280,3 +378,133 @@ function updateHorizon() {
   compass.style.backgroundPosition = `${backgroundX}px 0`;
 }
 
+
+
+
+class TerrainSilhouette {
+    constructor(worldData, playerState, settings, element) {
+        this.worldData = worldData;
+        this.playerState = playerState;
+        this.settings = settings;
+        this.element = element;
+            this.debugCanvas = document.getElementById('terrain-debug-visualizer');
+            this.debugCtx = this.debugCanvas.getContext('2d');
+    }
+
+update() {
+    const { points, debugPoints } = this.computeVisibleTerrain();
+    this.applyClipPath(this.pointsToClipPath(points));
+    this.drawDebugVisualizer(debugPoints);
+}
+
+computeVisibleTerrain() {
+    const halfCanvas = this.debugCanvas.width / 2;
+    const scale = halfCanvas / SETTINGS.sightRange;
+    const yawRad = SETTINGS.yaw * -Math.PI / 180;
+    const cosYaw = Math.cos(-yawRad);
+    const sinYaw = Math.sin(-yawRad);
+
+    const points = [];       // For silhouette
+    const debugPoints = [];  // For visualizer
+
+    for (let dy = -SETTINGS.sightRange; dy <= SETTINGS.sightRange; dy++) {
+        for (let dx = -SETTINGS.sightRange; dx <= SETTINGS.sightRange; dx++) {
+            const worldX = PLAYER_STATE.coordinate.x + dx;
+            const worldY = PLAYER_STATE.coordinate.y + dy;
+
+            if (!worldData.map[worldY] || !worldData.map[worldY][worldX]) continue;
+
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist > SETTINGS.sightRange) continue;
+
+            // Rotate so player faces up
+            const rx = dx * cosYaw - dy * sinYaw;
+            const ry = dx * sinYaw + dy * cosYaw;
+
+            // Angle in original space
+            let angle = Math.atan2(dy, dx);
+            let relAngle = normalizeAngle(angle - yawRad);
+            if (Math.abs(relAngle) > SETTINGS.fov / 2) continue;
+
+            // Heightmap value
+            const h = worldData.map[worldY][worldX].height || 0;
+
+            // --- For silhouette ---
+            // Map relAngle to horizontal % in FOV
+            const anglePct = (relAngle + SETTINGS.fov / 2) / SETTINGS.fov; // 0..1
+            const screenX = anglePct * 100;
+            // Map height to vertical %
+            const heightPct = 100 - (h / SETTINGS.maxTerrainHeight) * 100;
+            points.push(`${screenX}% ${heightPct}%`);
+
+            // --- For debug visualizer ---
+            const brightness = Math.min(255, (h / SETTINGS.maxTerrainHeight) * 255);
+            debugPoints.push({
+                x: halfCanvas + rx * scale - scale/2,
+                y: halfCanvas + ry * scale - scale/2,
+                brightness
+            });
+        }
+    }
+
+    return { points, debugPoints };
+
+    function normalizeAngle(a) {
+        a = a % (Math.PI * 2);
+        if (a > Math.PI) a -= Math.PI * 2;
+        if (a < -Math.PI) a += Math.PI * 2;
+        return a;
+    }
+}
+
+pointsToClipPath(points) {
+    if (points.length === 0) return '';
+    // Sort points left-to-right by X percentage
+    points.sort((a, b) => parseFloat(a) - parseFloat(b));
+    return `polygon(${points.join(', ')})`;
+}
+
+drawDebugVisualizer(debugPoints) {
+    const ctx = this.debugCtx;
+    const size = this.debugCanvas.width;
+    ctx.clearRect(0, 0, size, size);
+
+    // Draw visible terrain
+    for (const p of debugPoints) {
+        ctx.fillStyle = `rgb(${p.brightness}, ${p.brightness}, ${p.brightness})`;
+        ctx.fillRect(p.x, p.y, size / SETTINGS.sightRange / 2, size / SETTINGS.sightRange / 2);
+    }
+
+    // Draw FOV lines
+    const half = size / 2;
+    ctx.strokeStyle = 'red';
+    ctx.beginPath();
+    ctx.moveTo(half, half);
+    ctx.lineTo(
+        half + Math.sin(SETTINGS.fov / 2) * SETTINGS.sightRange * (size / 2 / SETTINGS.sightRange),
+        half - Math.cos(SETTINGS.fov / 2) * SETTINGS.sightRange * (size / 2 / SETTINGS.sightRange)
+    );
+    ctx.moveTo(half, half);
+    ctx.lineTo(
+        half - Math.sin(SETTINGS.fov / 2) * SETTINGS.sightRange * (size / 2 / SETTINGS.sightRange),
+        half - Math.cos(SETTINGS.fov / 2) * SETTINGS.sightRange * (size / 2 / SETTINGS.sightRange)
+    );
+    ctx.stroke();
+
+    // Player marker
+    ctx.fillStyle = 'blue';
+    ctx.beginPath();
+    ctx.arc(half, half, 4, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+
+    applyClipPath(polygonStr) {
+        this.element.offsetHeight; // forces reflow
+        this.element.style.clipPath = polygonStr;
+    }
+
+    degToRad(deg) {
+        return deg * Math.PI / 180;
+    }
+}

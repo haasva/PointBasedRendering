@@ -1,4 +1,4 @@
-import { uniqueTextures, vegetationData, textureData } from "../init/world-data.js";
+import { uniqueTextures, vegetationData, textureData, worldData } from "../init/world-data.js";
 import { SETTINGS, PLAYER_STATE, togglePointerLock, worldX, worldY } from "./movement.js";
 
 
@@ -103,19 +103,20 @@ export async function drawFloor() {
         for (let x = startX; x <= endX; x++) {
             if (y < 0 || y >= textureData.length || x < 0 || x >= textureData[0].length) continue;
             
-            const texture = textureData[y][x];
+            const texture = worldData.map[y][x].texture;
             if (!texture) continue;
 
 const screenX = (x - worldX + SETTINGS.sightRange) * cellSize;
 const screenY = (y - worldY + SETTINGS.sightRange) * cellSize;
 
-            bufferCtx.drawImage(
-                await loadTexture(texture),
-                screenX,
-                screenY,
-                cellSize,
-                cellSize
-            );
+            const elevation = worldData.map[y][x].height; // 0-25 range
+
+            // Apply elevation-based brightness
+const adjustedTexture = await loadElevationAdjustedTexture(
+    texture,
+    worldData.map[y][x].height
+);
+bufferCtx.drawImage(adjustedTexture, screenX, screenY, cellSize, cellSize);
         }
     }
 
@@ -133,7 +134,30 @@ const screenY = (y - worldY + SETTINGS.sightRange) * cellSize;
     lastWorldY = worldY;
 }
 
+const elevationCache = new Map();
 
+async function loadElevationAdjustedTexture(name, elevation) {
+    const cacheKey = `${name}_${elevation}`;
+    if (elevationCache.has(cacheKey)) return elevationCache.get(cacheKey);
+    
+    const original = await loadTexture(name);
+    const canvas = document.createElement('canvas');
+    canvas.width = original.naturalWidth;
+    canvas.height = original.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    
+    // Apply brightness adjustment
+    ctx.filter = `brightness(${getElevationBrightness(elevation)})`;
+    ctx.drawImage(original, 0, 0);
+    
+    elevationCache.set(cacheKey, canvas);
+    return canvas;
+}
+
+function getElevationBrightness(elevation) {
+    // Convert 0-25 range to 70%-130% brightness (adjust as needed)
+    return 0.8 + (elevation / 20) * 0.8;
+}
 
 
 
@@ -155,9 +179,9 @@ export function updateVisibleArea() {
     const centerY = Math.round(worldY);
     
     const minX = Math.max(0, centerX - SETTINGS.sightRange);
-    const maxX = Math.min(999, centerX + SETTINGS.sightRange);
+    const maxX = Math.min(1999, centerX + SETTINGS.sightRange);
     const minY = Math.max(0, centerY - SETTINGS.sightRange);
-    const maxY = Math.min(999, centerY + SETTINGS.sightRange);
+    const maxY = Math.min(1999, centerY + SETTINGS.sightRange);
     
     cellPool.forEach((cell, key) => {
         const [x, y] = key.split(',').map(Number);
@@ -189,8 +213,8 @@ export function updateVisibleArea() {
             if (distance > SETTINGS.sightRange) continue;
             
             const key = `${x},${y}`;
-            if (!cellPool.has(key) && vegetationData[y][x]) {
-                const data = vegetationData[y][x];
+            if (!cellPool.has(key) && worldData.map[y][x].vegetation) {
+                const data = worldData.map[y][x].vegetation;
                 const cellData = createCell(x, y, cellSize, data);
                 cellData.element.style.setProperty('--rotation-z', `${SETTINGS.yaw}deg`);
                 renderer.appendChild(cellData.element);
@@ -208,13 +232,15 @@ function createCell(x, y, cellSize, data) {
     element.dataset.y = y;
     element.style.width = `${cellSize}px`;
     element.style.height = `${cellSize}px`;
+
+    element.dataset.elevation = data.vegetation.elevation;
     
     const cardboard = document.createElement('div');
     cardboard.className = 'tree';
     cardboard.classList.add('cardboard');
     cardboard.classList.add(`${data.vegetation.size}`);
     //cardboard.style.animation = data.vegetation.animation;
-    cardboard.style.backgroundImage = `url("../art/vegetation/arid-montane/${data.vegetation.size}/${data.vegetation.variation}.png")`;
+    cardboard.style.backgroundImage = `url("../art/vegetation/${data.vegetation.type}/${data.vegetation.size}/${data.vegetation.variation}.png")`;
     element.appendChild(cardboard);
     
     const cellData = {
@@ -249,9 +275,11 @@ export function updateAllPositions() {
         const posX = (rendererWidth / 2) + (dx * cellSize);
         const posY = (rendererHeight / 2) + (dy * cellSize);
 
-        const scale = 0.8 + (0.2 * (1 - distance * 2 / SETTINGS.sightRange));
+        const scale = 20 - (10 * distance * 2 / SETTINGS.sightRange);
+
+        const elevation = cell.element.dataset.elevation;
         cell.element.style.transform = `
-            translate3d(${posX}px, ${posY}px, 0)
+            translate3d(${posX}px, ${posY}px, ${0}px)
         `;
 
     });
@@ -268,7 +296,7 @@ export function applyNeoTransforms() {
   renderer.style.transform = `
     rotateX(${SETTINGS.pitch}deg)  /* Pitch - applied first */
     rotateZ(${SETTINGS.yaw}deg) /* Yaw - applied second */
-    scale3d(800, 800, 800) 
+    scale3d(${SETTINGS.zoom}, ${SETTINGS.zoom}, ${SETTINGS.zoom}) 
     translate3d(${SETTINGS.translateX}px, ${SETTINGS.translateY}px, ${SETTINGS.translateZ}dvh) 
     `;
 }

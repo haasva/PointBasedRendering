@@ -35,6 +35,7 @@
   <div id="position-info" class="interface-modules">
     <div id="pos-x"></div>
     <div id="pos-y"></div>
+    <div id="cell-data"></div>
     <div id="fps"></div>
   </div>
 
@@ -51,9 +52,34 @@
 
 
 <div id="menu">
-  <div id="world-map-container">
-    <div id="world-map"></div>
+
+
+  <div id="world">
+
+    <div id="world-info">
+
+      <div class="info">
+        <span>Climate: </span><span class="data" id="climate"></span>
+      </div>
+      <div class="info">
+        <span>Terrain: </span><span class="data" id="terrain"></span>
+      </div>
+      <div class="info">
+        <span>Mountain: </span><span class="data" id="mountain"></span>
+      </div>
+      <div class="info">
+        <span>Desert: </span><span class="data" id="desert"></span>
+      </div>
+
+    </div>
+
+    <div id="world-map-container">
+      <div id="world-map"></div>
+    </div>
+
   </div>
+
+  
 </div>
 
 
