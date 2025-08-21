@@ -1,10 +1,11 @@
 import { uniqueTextures, vegetationData, textureData, worldData } from "../init/world-data.js";
 import { SETTINGS, PLAYER_STATE, togglePointerLock, worldX, worldY } from "./movement.js";
+import { updateUnits } from './units.js';
 
 
 
 const renderer = document.getElementById('renderer');
-const cellPool = new Map();
+export const cellPool = new Map();
 const cardboardMap = new Map();
 
 export const canvas = document.getElementById('floor');
@@ -14,8 +15,8 @@ let lastWorldY = worldY;
 
 
 // Double buffering
-const bufferCanvas = document.createElement('canvas');
-const bufferCtx = bufferCanvas.getContext('2d');
+export const bufferCanvas = document.createElement('canvas');
+export const bufferCtx = bufferCanvas.getContext('2d');
 
 ctx.imageSmoothingEnabled = false;
 bufferCtx.imageSmoothingEnabled = false;
@@ -50,11 +51,11 @@ async function initFloorCanvas() {
     bufferCtx.webkitImageSmoothingEnabled = false;
     bufferCtx.msImageSmoothingEnabled = false;
 
-    bufferCanvas.width = renderer.clientWidth * 10; 
-    bufferCanvas.height = renderer.clientHeight * 10;
+    bufferCanvas.width = renderer.clientWidth * 4; 
+    bufferCanvas.height = renderer.clientHeight * 2;
 
-    canvas.width = renderer.clientWidth * 10; 
-    canvas.height = renderer.clientHeight * 10;
+    canvas.width = renderer.clientWidth * 4; 
+    canvas.height = renderer.clientHeight * 2;
 
     await Promise.all(
         [...uniqueTextures].map(loadTexture)
@@ -78,17 +79,52 @@ async function loadTexture(name) {
     });
 }
 
+export async function drawDebugGrid() {
+
+    if (SETTINGS.debug === false) {
+        drawFloor();
+        return;
+    }
+
+
+    const cellSize = 250 / 5; // Match the cell size used in drawFloor()
+    const startX = Math.floor(worldX - SETTINGS.sightRange - 5);
+    const endX = Math.ceil(worldX + SETTINGS.sightRange + 5);
+    const startY = Math.floor(worldY - SETTINGS.sightRange);
+    const endY = Math.ceil(worldY + SETTINGS.sightRange);
+
+
+
+    for (let y = startY; y <= endY; y++) {
+        for (let x = startX; x <= endX; x++) {
+            if (y < 0 || y >= textureData.length || x < 0 || x >= textureData[0].length) continue;
+            
+            const screenX = (x - worldX + SETTINGS.sightRange + 5) * cellSize;
+            const screenY = (y - worldY + SETTINGS.sightRange) * cellSize;
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            if (SETTINGS.debug === true) {
+                ctx.lineWidth = 1;
+            } else {
+                ctx.lineWidth = 0;
+            }
+            
+            ctx.strokeRect(screenX, screenY, cellSize, cellSize);
+        }
+    }
+}
+
 
 export async function drawFloor() {
-    const cellSize = 125;
-    const fractionalX = Math.floor(worldX % 0.5);
-    const fractionalY = Math.floor(worldY % 0.5);
+    const cellSize = 250 / 5;
+    const fractionalX = Math.floor(worldX % 1);
+    const fractionalY = Math.floor(worldY % 1);
     
-    // Calculate render bounds with sub-cell precision
-    const startX = Math.floor(worldX - SETTINGS.sightRange) - 1;
-    const endX = Math.ceil(worldX + SETTINGS.sightRange) + 1;
-    const startY = Math.floor(worldY - SETTINGS.sightRange) - 1;
-    const endY = Math.ceil(worldY + SETTINGS.sightRange) + 1;
+    const xPadding = 5; // Extra cells in X direction
+    const startX = Math.floor(worldX - SETTINGS.sightRange - xPadding);
+    const endX = Math.ceil(worldX + SETTINGS.sightRange + xPadding);
+    const startY = Math.floor(worldY - SETTINGS.sightRange);
+    const endY = Math.ceil(worldY + SETTINGS.sightRange);
 
     // Clear only the moving portion
     bufferCtx.clearRect(
@@ -106,17 +142,27 @@ export async function drawFloor() {
             const texture = worldData.map[y][x].texture;
             if (!texture) continue;
 
-const screenX = (x - worldX + SETTINGS.sightRange) * cellSize;
-const screenY = (y - worldY + SETTINGS.sightRange) * cellSize;
+            const screenX = (x - worldX + SETTINGS.sightRange + xPadding) * cellSize;
+
+            const screenY = (y - worldY + SETTINGS.sightRange) * cellSize;
 
             const elevation = worldData.map[y][x].height; // 0-25 range
 
             // Apply elevation-based brightness
-const adjustedTexture = await loadElevationAdjustedTexture(
-    texture,
-    worldData.map[y][x].height
-);
-bufferCtx.drawImage(adjustedTexture, screenX, screenY, cellSize, cellSize);
+            const adjustedTexture = await loadElevationAdjustedTexture(
+                texture,
+                worldData.map[y][x].height
+            );
+            bufferCtx.drawImage(adjustedTexture, screenX, screenY, cellSize, cellSize);
+
+            // display grid lines
+            if (SETTINGS.debug === true) {
+            bufferCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            bufferCtx.lineWidth = 1;
+            bufferCtx.strokeRect(screenX, screenY, cellSize, cellSize);
+            }
+
+
         }
     }
 
@@ -129,6 +175,7 @@ bufferCtx.drawImage(adjustedTexture, screenX, screenY, cellSize, cellSize);
         canvas.width,
         canvas.height
     );
+    
 
     lastWorldX = worldX;
     lastWorldY = worldY;
@@ -178,20 +225,16 @@ export function updateVisibleArea() {
     const centerX = Math.round(worldX);
     const centerY = Math.round(worldY);
     
-    const minX = Math.max(0, centerX - SETTINGS.sightRange);
-    const maxX = Math.min(1999, centerX + SETTINGS.sightRange);
+    const minX = Math.max(0, centerX - SETTINGS.sightRange - 5);
+    const maxX = Math.min(1999, centerX + SETTINGS.sightRange + 5);
     const minY = Math.max(0, centerY - SETTINGS.sightRange);
     const maxY = Math.min(1999, centerY + SETTINGS.sightRange);
     
+    // Remove out-of-view cells
     cellPool.forEach((cell, key) => {
         const [x, y] = key.split(',').map(Number);
-        const distance = Math.sqrt(
-            Math.pow(x - worldX, 2) + 
-            Math.pow(y - worldY, 2)
-        );
-        
-        if (distance > SETTINGS.sightRange) {
-            removeCell(key, cell);
+        if (x < minX || x >= maxX || y < minY || y > maxY) {
+            removeCell(key, cell)
         }
     });
     
@@ -204,14 +247,7 @@ export function updateVisibleArea() {
     );
     
     for (let y = minY; y <= maxY; y++) {
-        for (let x = minX; x <= maxX; x++) {
-            const distance = Math.sqrt(
-                Math.pow(x - worldX, 2) + 
-                Math.pow(y - worldY, 2)
-            );
-            
-            if (distance > SETTINGS.sightRange) continue;
-            
+        for (let x = minX; x < maxX; x++) {
             const key = `${x},${y}`;
             if (!cellPool.has(key) && worldData.map[y][x].vegetation) {
                 const data = worldData.map[y][x].vegetation;
@@ -223,6 +259,7 @@ export function updateVisibleArea() {
     }
     
     updateAllPositions();
+
 }
 
 function createCell(x, y, cellSize, data) {
@@ -230,6 +267,8 @@ function createCell(x, y, cellSize, data) {
     element.className = 'land-cell';
     element.dataset.x = x;
     element.dataset.y = y;
+    element.dataset.worldX = x;
+    element.dataset.worldY = y;
     element.style.width = `${cellSize}px`;
     element.style.height = `${cellSize}px`;
 
@@ -297,7 +336,7 @@ export function applyNeoTransforms() {
     rotateX(${SETTINGS.pitch}deg)  /* Pitch - applied first */
     rotateZ(${SETTINGS.yaw}deg) /* Yaw - applied second */
     scale3d(${SETTINGS.zoom}, ${SETTINGS.zoom}, ${SETTINGS.zoom}) 
-    translate3d(${SETTINGS.translateX}px, ${SETTINGS.translateY}px, ${SETTINGS.translateZ}dvh) 
+    translate3d(${SETTINGS.translateX}px, ${SETTINGS.translateY}px, ${SETTINGS.translateZ}px) 
     `;
 }
 
@@ -305,7 +344,7 @@ export function applyNeoTransforms() {
 
 export function initRenderer() {
     cellPool.clear();
-    togglePointerLock();
+    //togglePointerLock();
     applyNeoTransforms();
     updateVisibleArea();
     initFloorCanvas();

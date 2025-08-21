@@ -1,4 +1,6 @@
 import { applyNeoTransforms, drawFloor, updateAllPositions, updateVisibleArea, updateAllCardboardRotations } from "./renderer.js";
+import { unitManager, updateUnits } from "./units.js";
+
 
 import { updateMinimap } from "../ui/minimap.js"
 
@@ -6,17 +8,17 @@ import { worldData } from "../init/world-data.js"
 
 export let PLAYER_STATE = {
     coordinate: {
-        x: 20,
-        y: 20
+        x: 852,
+        y: 284
     },
     terrain: ''
 }
 
-export let worldX = 20;
-export let worldY = 20;
+export let worldX = 852;
+export let worldY = 284;
 
-let _worldX = 20;
-let _worldY = 20;
+let _worldX = 852;
+let _worldY = 284;
 
 let lastFrameTime = 0;
 let lastMinimapUpdate = 0;
@@ -25,19 +27,20 @@ const MINIMAP_UPDATE_INTERVAL = 200; // ms
 let facingDirection = 0;
 
 export let SETTINGS = {
-    firstPerson: true,
-    sightRange: 20,
+    firstPerson: false,
+    sightRange: 10,
     pointerLock: false,
     run: false,
     moveSpeed: 1.5,
     yaw: 0,   // z rotation
-    pitch: 90,  // angle
-    translateZ: -0.4,
-    translateX: 0,
-    translateY: 0,
-    zoom: 1200,
+    pitch: 15,  // angle
+    translateZ: 705,
+    translateX: -13,
+    translateY: 800,
+    zoom: 1,
     maxTerrainHeight: 22,
-    fov: 90
+    fov: 90,
+    debug: false
 }
 
 
@@ -51,6 +54,46 @@ const baseSpeed = 2.5;
 const sprintSpeed = 40;
 let currentSpeed = keys.shift ? sprintSpeed : baseSpeed;
 
+let moveForward = 0;
+let moveRight = 0;
+
+// introduce edge screen mouse movement 
+const renderer = document.getElementById('renderer');
+renderer.addEventListener('mousemove', (event) => {
+
+    const edgeThreshold = 20; // pixels from the edge
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+
+    if (event.clientX < edgeThreshold) {
+        moveRight -= 1; // Move left
+    } else if (event.clientX > screenWidth - edgeThreshold) {
+        moveRight += 1; // Move right
+        console.log('move right: ', moveRight);
+    } else {
+      moveRight = 0; // Reset horizontal movement
+    }
+    if (event.clientY < edgeThreshold) {
+        moveForward -= 1; // Move up
+    } else if (event.clientY > screenHeight - edgeThreshold) {
+        moveForward += 1; // Move down
+    } else {
+      moveForward = 0; // Reset vertical movement
+    }
+
+
+    // include corners 
+    if (event.clientX < edgeThreshold && event.clientY < edgeThreshold) {
+        moveForward -= 1; // Move up-left
+    } else if (event.clientX > screenWidth - edgeThreshold && event.clientY < edgeThreshold) {
+        moveForward -= 1; // Move up-right
+    } else if (event.clientX < edgeThreshold && event.clientY > screenHeight - edgeThreshold) {
+        moveForward += 1; // Move down-left
+    } else if (event.clientX > screenWidth - edgeThreshold && event.clientY > screenHeight - edgeThreshold) {
+        moveForward += 1; // Move down-right
+    }
+});
+
 document.addEventListener('keydown', (e) => {
     const key = e.key.toLowerCase();
     if (['w', 'a', 's', 'd'].includes(key)) keys[key] = true;
@@ -60,6 +103,9 @@ document.addEventListener('keydown', (e) => {
 document.addEventListener('keyup', (e) => {
     const key = e.key.toLowerCase();
     if (['w', 'a', 's', 'd'].includes(key)) keys[key] = false;
+    
+    moveForward = 0;
+    moveRight = 0;
     if (e.code === 'ShiftLeft') keys.shift = false;
 });
 
@@ -80,20 +126,22 @@ document.addEventListener('keydown', (event) => {
 document.addEventListener('keydown', (event) => {
       if (event.code === 'Space') {
         event.preventDefault();
-        togglePointerLock();
+        //togglePointerLock();
       }
 });
 
 
-document.addEventListener('mousemove', updateCameraRotation);
+//document.addEventListener('mousemove', updateCameraRotation);
 
 export function gameLoop(timestamp) {
     if (!lastFrameTime) lastFrameTime = timestamp;
     const deltaTime = (timestamp - lastFrameTime) / 1000;
     lastFrameTime = timestamp;
 
-    let moveForward = 0;
-    let moveRight = 0;
+    unitManager.updateUnitPositions();
+
+
+
     
     if (keys.w) moveForward -= 1;
     if (keys.s) moveForward += 1;
@@ -114,12 +162,12 @@ export function gameLoop(timestamp) {
         if (SETTINGS.firstPerson === true) {
           if (worldData.map[PLAYER_STATE.coordinate.y][PLAYER_STATE.coordinate.x].terrain === 'road') {
             currentSpeed = baseSpeed * 2;
-            SETTINGS.translateZ = -0.4;
+            // SETTINGS.translateZ = -0.4;
           } else if (worldData.map[PLAYER_STATE.coordinate.y][PLAYER_STATE.coordinate.x].terrain === 'water') {
             currentSpeed = baseSpeed / 5;
             SETTINGS.translateZ = -0.1;
           } else {
-            SETTINGS.translateZ = -0.4;
+            // SETTINGS.translateZ = -0.4;
             currentSpeed = baseSpeed;
           }
         } else {
@@ -153,8 +201,6 @@ export function gameLoop(timestamp) {
         if (newCellX !== prevCellX || newCellY !== prevCellY) {
             needsGridUpdate = true;
         }
-
-
 
         headBobbing();
         updateAllPositions();
@@ -218,7 +264,7 @@ function updatePlayerStateTerrain() {
         PLAYER_STATE.coordinate.y = cellY;
         PLAYER_STATE.terrain = worldData.map[PLAYER_STATE.coordinate.y][PLAYER_STATE.coordinate.x];
 
-        updatePositionInfo(worldX.toFixed(2), worldY.toFixed(2), worldData.map[PLAYER_STATE.coordinate.y][PLAYER_STATE.coordinate.x]);
+        
 }
 
 export function getWorldPosition() {
@@ -261,18 +307,14 @@ function refreshLoop() {
     times.push(now);
     fps = times.length;
     document.getElementById('fps').textContent = 'FPS: ' + fps;
+    updateUnits();
     refreshLoop();
   });
 }
 
 refreshLoop();
 
-export function updatePositionInfo(x, y, cellData) {
-    const tip = document.querySelector('#position-info');
-    tip.querySelector('#pos-x').textContent = `X: ${x}`;
-    tip.querySelector('#pos-y').textContent = `Y: ${y}`;
-    tip.querySelector('#cell-data').textContent = `${cellData.terrain}`;
-}
+
 
 
 

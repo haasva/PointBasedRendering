@@ -13,6 +13,7 @@
   
     <!-- Stylesheets -->
     <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" type="text/css" href="/styles/adventurer-info-style.css">
   
     <!-- Preconnect & Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,7 +29,7 @@
   
 <body name="bodydocument">
 
-
+<div id="selection-square" class="selection-square"></div>
 
 <div id="hud">
 
@@ -48,10 +49,27 @@
 
   <div id="crosshair"></div>
 
+  <div id="controls">
+    <button id="createRandomAdventurer"></button>
+  </div>
+
 </div>
 
 
 <div id="menu">
+
+<div id="active-selection-unit">
+  <div id="unit-portrait"></div>
+  <div id="unit-name"></div>
+  <div class="unit-bars">
+    <progress class="unit-health"></progress>
+  </div>
+</div>
+
+
+
+
+<div id="selections"></div>
 
 
   <div id="world">
@@ -123,6 +141,8 @@
     <feMorphology operator="dilate" radius="1"/>
   </filter>
 </svg>
+
+
 
 
 </body>

@@ -63,6 +63,10 @@ async function loadTextureData() {
                       worldData.map[y][x].terrainFromImage = false;
                     }
 
+                    worldData.map[y][x].occupied = false;
+                    worldData.map[y][x].occupyingUnit = null;
+                    worldData.map[y][x].passable = true;
+
                 }
             }
 
@@ -154,6 +158,9 @@ async loadHeightmap() {
         // Extract grayscale value (0-255)
         const grayValue = imageData[pos]; // R channel (assuming grayscale)
         this.worldData.map[y][x].height = (255 - grayValue) / 10;
+          if (worldData.map[y][x].terrain === 'water') {
+            this.worldData.map[y][x].height = 4; // Set water height to 8
+          }
       }
     );
 }
